@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Delve Super Admin Dashboard
 
-## Getting Started
+A secure Super Admin portal for managing users and controlling AI resource consumption within the Delve application. The system automatically enforces usage limits based on user account type (free/paid) and provides administrators with tools to monitor usage, manage user access, and view relevant logs.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Authentication & Security
+- Dedicated login route (`/admin/login`) with JWT-based authentication
+- Protected admin routes requiring valid Super Admin token
+- Role-based access control
+
+### AI Usage Tracking & Control
+- Automatic tracking of AI endpoint calls per user
+- Differentiated limits for free vs paid users
+- Daily usage reset at midnight UTC
+- Automatic blocking of users who exceed daily limits
+
+### User Management
+- View and filter all users by status (active, blocked, deactivated)
+- Manually deactivate or reactivate user accounts
+- Permanent user deletion with associated data
+- View user-specific AI usage logs
+
+### System Monitoring
+- Dashboard with key metrics and statistics
+- Comprehensive system logs for tracking blockings and account changes
+- Detailed view of currently blocked users
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT (JSON Web Tokens)
+- **State Management**: React Hooks
+
+## Project Structure
+
+```
+delve-super-admin/
+├── app/                  # Next.js app directory
+│   ├── admin/            # Admin dashboard pages
+│   │   ├── dashboard/    # Main dashboard
+│   │   ├── login/        # Admin login
+│   │   ├── logs/         # System logs viewer
+│   │   └── users/        # User management
+│   └── api/              # API routes
+│       ├── admin/        # Admin API endpoints
+│       └── ai/           # AI-related endpoints with usage tracking
+├── components/           # Reusable UI components
+├── lib/                  # Utility functions and services
+│   ├── auth/             # Authentication utilities
+│   └── db/               # Database services
+└── models/               # Mongoose models
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API Endpoints
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Authentication
+- `POST /api/admin/login` - Admin login
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### User Management
+- `GET /api/admin/users` - Get all users with filtering
+- `POST /api/admin/users/:id/deactivate` - Deactivate a user
+- `POST /api/admin/users/:id/reactivate` - Reactivate a user
+- `DELETE /api/admin/users/:id` - Delete a user
 
-## Learn More
+### Logs and Monitoring
+- `GET /api/admin/logs` - Get system logs
+- `GET /api/admin/ai/logs/:userId` - Get AI usage logs for a specific user
 
-To learn more about Next.js, take a look at the following resources:
+### AI Endpoint (with Usage Checking)
+- `POST /api/ai/process` - Example AI endpoint with usage tracking and limiting
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Setup and Installation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/delve-super-admin.git
+   cd delve-super-admin
+   ```
 
-## Deploy on Vercel
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Create a `.env.local` file with the following variables:
+   ```
+   MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret_key
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Open http://localhost:3000/admin/login in your browser
+
+## User Types and Limits
+
+- **Free Users**: Limited to 10 AI requests per day
+- **Paid Users**: Limits calculated based on subscription tier (approximately half of their monthly subscription cost)
+
+## Demo Credentials
+
+For demonstration purposes, you can use the following credentials:
+
+- **Email**: admin@example.com
+- **Password**: admin123
+
+## License
+
+MIT License
