@@ -13,6 +13,16 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  account_type: string;
+  role?: string;
+  is_deactivated?: boolean;
+  // Other fields omitted for brevity
+}
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -25,30 +35,55 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     
     // Check for token
     const token = localStorage.getItem('adminToken');
-    const user = localStorage.getItem('adminUser');
+    const userStr = localStorage.getItem('adminUser');
     
-    if (!token || !user) {
+    if (!token || !userStr) {
       setIsAuthenticated(false);
       if (!isLoginPage) {
         router.push('/admin/login');
       }
     } else {
-      setIsAuthenticated(true);
-      // Parse user to check if they are super_admin
       try {
-        const userData = JSON.parse(user);
-        if (userData.role !== 'super_admin') {
+        // Parse user data
+        const userData = JSON.parse(userStr) as UserData;
+        
+        // Check if user is deactivated
+        if (userData.is_deactivated) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminUser');
+          setIsAuthenticated(false);
+          toast.error('Your account has been deactivated. Please contact support.');
+          router.push('/admin/login');
+          return;
+        }
+        
+        // Check if user is a super admin - accept various formats of super admin type
+        const isSuperAdmin = 
+          (userData.role === 'super_admin') || 
+          (userData.account_type === 'admin') ||
+          (userData.account_type === 'super-admin') ||
+          (userData.account_type === 'super_admin');
+        
+        if (!isSuperAdmin) {
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminUser');
           setIsAuthenticated(false);
           toast.error('Only super admins can access this area');
           router.push('/admin/login');
+        } else {
+          // Add/normalize role field if needed
+          if (!userData.role) {
+            userData.role = 'super_admin';
+            localStorage.setItem('adminUser', JSON.stringify(userData));
+          }
+          setIsAuthenticated(true);
         }
-      } catch (error) {
-        console.error('Error parsing user data:', error);
+      } catch (parseError) {
+        console.error('Error parsing user data:', parseError);
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
         setIsAuthenticated(false);
+        toast.error('Authentication error. Please log in again.');
         router.push('/admin/login');
       }
     }
@@ -76,7 +111,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
-  // If not yet determined if authenticated, show nothing
+  // If not yet determined if authenticated, show loading spinner
   if (isAuthenticated === null) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-background">

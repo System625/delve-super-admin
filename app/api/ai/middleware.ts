@@ -34,15 +34,26 @@ export async function withAIUsageCheck(
       );
     }
 
+    // Get the user ID from either source in the payload
+    const userId = (payload.userId || payload.id || '').toString();
+    
     // Add user data to the request
     req.user = {
-      userId: payload.userId,
+      userId: userId,
       email: payload.email,
-      role: payload.role,
+      role: (payload.role || payload.account_type || 'user').toString(),
     };
 
+    // No user ID, can't continue
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Invalid user identity" },
+        { status: 401 }
+      );
+    }
+
     // Check if the user can make an AI request
-    const { allowed, reason } = await canMakeAIRequest(payload.userId);
+    const { allowed, reason } = await canMakeAIRequest(userId);
     
     if (!allowed) {
       return NextResponse.json(
@@ -71,7 +82,7 @@ export async function withAIUsageCheck(
     }
     
     // Record the AI usage
-    await recordAIUsage(payload.userId, tokensUsed);
+    await recordAIUsage(userId, tokensUsed);
     
     return response;
   } catch (error) {

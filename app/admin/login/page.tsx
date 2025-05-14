@@ -9,6 +9,38 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+// Zod schema for login form validation
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+// Type for the sign-in API response
+interface SignInResponse {
+  success: boolean;
+  status_code: number;
+  message: string;
+  data: {
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      is_verified: boolean;
+      image_url: string | null;
+      primary_language: string | null;
+      target_language: string | null;
+      target_language_proficiency: string | null;
+      account_type: string;
+      resetToken: string | null;
+      resetTokenExpires: string | null;
+      is_deactivated: boolean;
+      // Other fields may be present
+    }
+  };
+  access_token: string;
+}
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,38 +49,76 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const validateForm = (): z.SafeParseReturnType<{
+    email: string;
+    password: string;
+  }, {
+    email: string;
+    password: string;
+  }> => {
+    return loginSchema.safeParse({ email, password });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form input
+    const validationResult = validateForm();
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || 'Invalid form data';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return;
+    }
+    
     setError(null);
     setIsLoading(true);
 
     try {
-      // Demo credentials - in a real app this would validate against the API
-      if (email === 'admin@example.com' && password === 'admin123') {
-        // Create mock token and user data
-        const mockToken = 'demo-jwt-token-for-super-admin';
-        const mockUser = {
-          id: '3',
-          email: 'admin@example.com',
-          name: 'Admin User',
-          role: 'super_admin'
-        };
-
-        // Save mock data to localStorage
-        localStorage.setItem('adminToken', mockToken);
-        localStorage.setItem('adminUser', JSON.stringify(mockUser));
-
-        // Show success message
-        toast.success('Login successful');
-        
-        // Redirect to dashboard
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-        }, 500);
-      } else {
-        // Simulate invalid credentials response
-        throw new Error('Invalid email or password');
+      // Get API URL from environment variables
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('API URL is not configured');
       }
+
+      // Make API request to sign in
+      const response = await fetch(`${apiUrl}/auth/sign_in`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to sign in');
+      }
+
+      // Type assertion to help TypeScript understand the response shape
+      const apiResponse = data as SignInResponse;
+
+      // Extract user data from the response
+      const userData = apiResponse.data.user;
+      
+      // Add role field to user data based on account_type
+      const userDataWithRole = {
+        ...userData,
+        role: userData.account_type === 'super-admin' ? 'super_admin' : userData.account_type
+      };
+
+      // Store token and processed user data in localStorage
+      localStorage.setItem('adminToken', apiResponse.access_token);
+      localStorage.setItem('adminUser', JSON.stringify(userDataWithRole));
+
+      // Show success message
+      toast.success(apiResponse.message || 'Login successful');
+      
+      // Add a small delay before redirecting
+      setTimeout(() => {
+        router.push('/admin/dashboard');
+      }, 1000);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
       setError(errorMessage);
@@ -82,7 +152,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="your@email.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -109,13 +179,11 @@ export default function AdminLoginPage() {
                 {isLoading ? 'Logging in...' : 'Login'}
               </Button>
             </form>
-            <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md text-sm">
-              <strong>Demo Credentials:</strong><br />
-              Email: admin@example.com<br />
-              Password: admin123
-            </div>
           </CardContent>
-          <CardFooter className="flex justify-center">
+          <CardFooter className="flex flex-col gap-2">
+            <Link href="/auth/create-super-admin" className="text-sm text-muted-foreground hover:text-primary">
+              Need to create a super admin account?
+            </Link>
             <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
               Return to Home
             </Link>

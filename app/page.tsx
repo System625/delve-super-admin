@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
@@ -44,7 +44,19 @@ export default function HomePage() {
             </Link>
           </Button>
           
-          <p className="text-sm text-muted-foreground">
+          <div className="mt-4">
+            <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+              <Link href="/auth/create-super-admin">
+                Create Super Admin Account
+                <UserPlus className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <p className="mt-2 text-sm text-muted-foreground">
+              First time setup? Create a super admin account to get started.
+            </p>
+          </div>
+          
+          <p className="text-sm text-muted-foreground mt-6">
             Redirecting automatically in a few seconds...
           </p>
         </div>
