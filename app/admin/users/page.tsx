@@ -276,7 +276,18 @@ export default function UsersPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              renderSkeletons()
+              <>
+                {/* Spinner */}
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <div className="flex justify-center items-center py-6">
+                      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {/* Skeleton rows for preview */}
+                {renderSkeletons()}
+              </>
             ) : users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">

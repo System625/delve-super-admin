@@ -2,45 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withSuperAdminAuth } from '@/lib/auth/middleware';
 
 /**
- * GET handler for fetching system logs
- * This endpoint returns all system logs or logs filtered by type
+ * GET handler for fetching logs for a specific user
+ * This endpoint returns logs for a single user ID
  */
 export async function GET(req: NextRequest) {
-  console.log('Auth header received in logs API:', req.headers.get('authorization'));
-  
-  // Get the Bearer token manually to debug
-  const authHeader = req.headers.get('authorization') || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
-  console.log('Token extracted in logs API:', token ? `${token.substring(0, 15)}...` : 'No token');
+  console.log('Auth header received in user logs API:', req.headers.get('authorization'));
 
   return withSuperAdminAuth(req, async () => {
     try {
-      // Extract query parameters if needed
-      // const url = new URL(req.url);
-      // const logType = url.searchParams.get('type') || 'all';
+      // Extract query parameters
+      const url = new URL(req.url);
+      const userId = url.searchParams.get('userId');
       
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'User ID is required' },
+          { status: 400 }
+        );
+      }
+
       // Get API URL from environment variables
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) {
         console.error('API URL not configured');
         return NextResponse.json(
-          { 
-            success: false,
-            message: 'API URL is not configured',
-            data: null
-          },
+          { error: 'API URL is not configured' },
           { status: 500 }
         );
       }
 
       // Log the request to help debug
-      console.log('Making request to external logs API:', `${apiUrl}/ai/logs`);
+      const externalEndpoint = `${apiUrl}/ai/logs/user?userId=${userId}`;
+      console.log('Making request to external user logs API:', externalEndpoint);
       
       // Get the authorization token from the request
       const authHeader = req.headers.get('authorization');
       
-      // Make request to external API to fetch logs
-      const response = await fetch(`${apiUrl}/ai/logs`, {
+      // Make request to external API to fetch user logs
+      const response = await fetch(externalEndpoint, {
         method: 'GET',
         headers: {
           'Authorization': authHeader || '',
@@ -48,7 +47,9 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      console.log('External API logs response status:', response.status);
+      // Log the full URL and response for debugging
+      console.log('Full URL requested:', externalEndpoint);
+      console.log('Response status:', response.status);
       
       if (!response.ok) {
         console.error('External API error status:', response.status);
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(
           { 
             success: false,
-            message: errorData.message || `Failed to fetch logs (status: ${response.status})`,
+            message: errorData.message || `Failed to fetch user logs (status: ${response.status})`,
             data: null
           },
           { status: response.status }
@@ -67,20 +68,20 @@ export async function GET(req: NextRequest) {
 
       // Parse the data
       const data = await response.json();
-      console.log('Logs data received, entries:', Object.keys(data).length);
+      console.log('User logs data received, entries:', Object.keys(data).length);
       
-      // Format the response to match the format used in the user logs endpoint
+      // Format the response to match the format used in the logs endpoint
       return NextResponse.json({
         success: true,
-        message: 'Logs retrieved successfully',
+        message: 'User logs retrieved successfully',
         data: data
       });
     } catch (error) {
-      console.error('Error fetching logs:', error);
+      console.error('Error fetching user logs:', error);
       return NextResponse.json(
         { 
           success: false,
-          message: error instanceof Error ? error.message : 'Failed to fetch logs',
+          message: error instanceof Error ? error.message : 'Failed to fetch user logs',
           data: null
         },
         { status: 500 }
