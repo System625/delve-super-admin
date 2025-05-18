@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
 
   return withSuperAdminAuth(req, async () => {
     try {
-      // Extract query parameters if needed
+      // Extract query parameters
+      // Uncomment and use these parameters when implementing filtering by log type
       // const url = new URL(req.url);
       // const logType = url.searchParams.get('type') || 'all';
       
@@ -24,11 +25,7 @@ export async function GET(req: NextRequest) {
       if (!apiUrl) {
         console.error('API URL not configured');
         return NextResponse.json(
-          { 
-            success: false,
-            message: 'API URL is not configured',
-            data: null
-          },
+          { error: 'API URL is not configured' },
           { status: 500 }
         );
       }
@@ -41,48 +38,28 @@ export async function GET(req: NextRequest) {
       
       // Make request to external API to fetch logs
       const response = await fetch(`${apiUrl}/ai/logs`, {
-        method: 'GET',
         headers: {
           'Authorization': authHeader || '',
-          'Content-Type': 'application/json'
         },
       });
 
+      const data = await response.json();
       console.log('External API logs response status:', response.status);
       
       if (!response.ok) {
-        console.error('External API error status:', response.status);
-        const errorData = await response.json().catch(() => ({ message: `Failed with status: ${response.status}` }));
-        console.error('External API error data:', errorData);
-        
+        console.error('External API error:', data);
         return NextResponse.json(
-          { 
-            success: false,
-            message: errorData.message || `Failed to fetch logs (status: ${response.status})`,
-            data: null
-          },
+          { error: data.message || 'Failed to fetch logs' },
           { status: response.status }
         );
       }
 
-      // Parse the data
-      const data = await response.json();
-      console.log('Logs data received, entries:', Object.keys(data).length);
-      
-      // Format the response to match the format used in the user logs endpoint
-      return NextResponse.json({
-        success: true,
-        message: 'Logs retrieved successfully',
-        data: data
-      });
+      // Return the data directly
+      return NextResponse.json(data);
     } catch (error) {
       console.error('Error fetching logs:', error);
       return NextResponse.json(
-        { 
-          success: false,
-          message: error instanceof Error ? error.message : 'Failed to fetch logs',
-          data: null
-        },
+        { error: 'Failed to fetch logs' },
         { status: 500 }
       );
     }

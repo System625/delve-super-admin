@@ -52,25 +52,23 @@ interface SystemLog {
   timestamp: string;
 }
 
-// Define interfaces for the API log data
-interface APILogUser {
-  id?: string;
-  email?: string;
-  name?: string;
-  is_deactivated?: boolean;
-}
-
-interface APILog {
+// Define an interface for the API log data
+interface ApiLogData {
   id: string;
-  request?: Record<string, unknown>;
-  response?: Record<string, unknown>;
+  user?: {
+    id?: string;
+    email?: string;
+    name?: string;
+    is_deactivated?: boolean;
+  };
+  request?: string;
+  response?: string;
   model?: string;
-  user?: APILogUser;
   created_at?: string;
 }
 
 // Transform API log data to match our SystemLog interface
-const transformLogData = (apiLog: APILog): SystemLog => {
+const transformLogData = (apiLog: ApiLogData): SystemLog => {
   // Extract user info from the API response
   const user = apiLog.user || {};
   
@@ -144,8 +142,8 @@ export default function LogsPage() {
       }
       
       // Transform the API response data to match our SystemLog format
-      const transformedLogs = Object.values(data.data as Record<string, APILog>).map((logItem: APILog) => 
-        transformLogData(logItem)
+      const transformedLogs = Object.values(data.data).map((logItem) => 
+        transformLogData(logItem as ApiLogData)
       );
       
       setLogs(transformedLogs);
@@ -195,8 +193,8 @@ export default function LogsPage() {
       }
       
       // Transform the API response data to match our SystemLog format
-      const transformedLogs = Object.values(data.data as Record<string, APILog>).map((logItem: APILog) => 
-        transformLogData(logItem)
+      const transformedLogs = Object.values(data.data).map((logItem) => 
+        transformLogData(logItem as ApiLogData)
       );
       
       setLogs(transformedLogs);
@@ -270,7 +268,7 @@ export default function LogsPage() {
     const startIndex = (pagination.page - 1) * pagination.per_page;
     const endIndex = startIndex + pagination.per_page;
     setDisplayedLogs(filteredLogs.slice(startIndex, endIndex));
-  }, [filteredLogs, pagination.page, pagination.per_page]);
+  }, [filteredLogs, pagination.page, pagination.per_page, filteredLogs.length]);
 
   const formatTimestamp = (timestamp: string) => {
     return format(new Date(timestamp), 'MMM d, yyyy HH:mm');
