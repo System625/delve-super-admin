@@ -5,7 +5,7 @@ import { withSuperAdminAuth } from '@/lib/auth/middleware';
  * GET handler for fetching system logs
  * This endpoint returns all system logs or logs filtered by type
  */
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {  
   console.log('Auth header received in logs API:', req.headers.get('authorization'));
   
   // Get the Bearer token manually to debug
@@ -29,11 +29,7 @@ export async function GET(req: NextRequest) {
           { status: 500 }
         );
       }
-
-      // Log the request to help debug
-      console.log('Making request to external logs API:', `${apiUrl}/ai/logs`);
-      
-      // Get the authorization token from the request
+     
       const authHeader = req.headers.get('authorization');
       
       // Make request to external API to fetch logs
@@ -44,7 +40,6 @@ export async function GET(req: NextRequest) {
       });
 
       const data = await response.json();
-      console.log('External API logs response status:', response.status);
       
       if (!response.ok) {
         console.error('External API error:', data);

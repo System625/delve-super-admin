@@ -68,13 +68,9 @@ interface ExternalUserData {
  * This endpoint returns a list of all users with basic information
  */
 export async function GET(req: NextRequest) {
-  // Debug log for the incoming Authorization header
-  console.log('Auth header received:', req.headers.get('authorization'));
-  
   // Get the Bearer token manually to debug
   const authHeader = req.headers.get('authorization') || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
-  console.log('Token extracted:', token ? `${token.substring(0, 15)}...` : 'No token');
+  console.log('Auth header received in users API:', authHeader ? `${authHeader.substring(0, 20)}...` : 'No auth header');
   
   return withSuperAdminAuth(req, async () => {
     try {
@@ -92,9 +88,7 @@ export async function GET(req: NextRequest) {
           { status: 500 }
         );
       }
-
-      // Use the correct endpoint format: /user instead of /users and limit instead of per_page
-      console.log('Making request to external API:', `${apiUrl}/user?page=${page}&limit=${limit}`);
+      
       // Get the authorization token from the request
       const authHeader = req.headers.get('authorization');
       
@@ -106,7 +100,6 @@ export async function GET(req: NextRequest) {
       });
 
       const data = await response.json();
-      console.log('External API response status:', response.status);
       
       if (!response.ok) {
         console.error('External API error:', data);
@@ -120,12 +113,8 @@ export async function GET(req: NextRequest) {
       const validationResult = usersResponseSchema.safeParse(data);
       if (!validationResult.success) {
         console.error('API response validation error:', validationResult.error);
-        console.log('Raw API response:', data);
-        // Continue anyway, but log the validation error for debugging
       }
 
-      // Based on the log example, we need to adapt the API response to match our expected format
-      // The response has users under data.users and pagination info under data.meta
       const adaptedData = {
         success: data.success,
         status_code: data.status_code,

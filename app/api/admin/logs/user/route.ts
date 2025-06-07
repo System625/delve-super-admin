@@ -5,8 +5,7 @@ import { withSuperAdminAuth } from '@/lib/auth/middleware';
  * GET handler for fetching logs for a specific user
  * This endpoint returns logs for a single user ID
  */
-export async function GET(req: NextRequest) {
-  console.log('Auth header received in user logs API:', req.headers.get('authorization'));
+export async function GET(req: NextRequest) {  
 
   return withSuperAdminAuth(req, async () => {
     try {
@@ -31,11 +30,8 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      // Log the request to help debug
-      const externalEndpoint = `${apiUrl}/ai/logs/user?userId=${userId}`;
-      console.log('Making request to external user logs API:', externalEndpoint);
+      const externalEndpoint = `${apiUrl}/ai/logs/user?userId=${userId}`;      
       
-      // Get the authorization token from the request
       const authHeader = req.headers.get('authorization');
       
       // Make request to external API to fetch user logs
@@ -46,10 +42,6 @@ export async function GET(req: NextRequest) {
           'Content-Type': 'application/json'
         },
       });
-
-      // Log the full URL and response for debugging
-      console.log('Full URL requested:', externalEndpoint);
-      console.log('Response status:', response.status);
       
       if (!response.ok) {
         console.error('External API error status:', response.status);
@@ -67,8 +59,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Parse the data
-      const data = await response.json();
-      console.log('User logs data received, entries:', Object.keys(data).length);
+      const data = await response.json();      
       
       // Format the response to match the format used in the logs endpoint
       return NextResponse.json({

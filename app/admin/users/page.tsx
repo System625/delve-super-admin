@@ -64,7 +64,6 @@ export default function UsersPage() {
 
     try {
       const token = localStorage.getItem('adminToken');
-      console.log('Token from localStorage:', token ? `${token.substring(0, 15)}...` : 'No token');
       
       if (!token) {
         throw new Error('Authentication token not found');
@@ -74,7 +73,6 @@ export default function UsersPage() {
       const apiUrl = `/api/admin/users?page=${currentPage}&per_page=10`;
       
       // If there's a search query, we'll add it to the URL but maintain client-side filtering
-      console.log('Fetching users from API...');
       const response = await fetch(
         apiUrl,
         {
@@ -84,7 +82,6 @@ export default function UsersPage() {
         }
       );
 
-      console.log('API response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -93,7 +90,6 @@ export default function UsersPage() {
       }
 
       const data: UsersResponse = await response.json();
-      console.log('Users data received:', data.data.users.length, 'users');
       
       // If there's a search query, filter the users client-side
       let filteredUsers = data.data.users;
@@ -104,7 +100,6 @@ export default function UsersPage() {
           (user.name?.toLowerCase() || '').includes(query)
         );
         
-        console.log('Filtered users by search query:', filteredUsers.length, 'results');
       }
       
       setUsers(filteredUsers);

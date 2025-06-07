@@ -27,18 +27,12 @@ export function generateToken(user: IUser): string {
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    // Add debugging for token verification
-    console.log('[verifyToken] Attempting to verify token');
     // We use a more flexible approach since we're handling external tokens
     let payload: JWTPayload;
     try {
       // First try with our secret
       payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-      console.log('[verifyToken] Token verified with internal secret');
-    } catch (verificationError) {
-      console.log('[verifyToken] Failed with internal secret, treating as external token');
-      // Log the verification error for debugging purposes
-      console.log('[verifyToken] Verification error:', verificationError);
+    } catch {      
       
       // If that fails, just decode without verification for external API tokens
       // This is necessary since we don't have access to the external API's secret
@@ -50,24 +44,15 @@ export function verifyToken(token: string): JWTPayload | null {
       }
       
       // Validate the payload has the required fields
-      if (!payload.email || ((!payload.role && !payload.account_type) || (!payload.userId && !payload.id))) {
-        console.log('[verifyToken] Token payload missing required fields');
-        console.log('[verifyToken] Payload:', payload);
+      if (!payload.email || ((!payload.role && !payload.account_type) || (!payload.userId && !payload.id))) {        
         return null;
       }
       
       // Check if the token is expired based on exp claim
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        console.log('[verifyToken] Token is expired');
         return null;
       }
     }
-    
-    console.log('[verifyToken] Token payload:', {
-      id: payload.id || payload.userId,
-      email: payload.email,
-      role: payload.role || payload.account_type
-    });
     
     return payload;
   } catch (error) {
