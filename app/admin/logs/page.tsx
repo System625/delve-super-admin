@@ -50,6 +50,11 @@ interface SystemLog {
   adminEmail?: string;
   adminName?: string;
   timestamp: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  estimatedCost?: number;
+  model?: string;
 }
 
 // Define an interface for the API log data
@@ -65,30 +70,43 @@ interface ApiLogData {
   response?: string;
   model?: string;
   created_at?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  estimatedCost?: number;
 }
 
 // Transform API log data to match our SystemLog interface
 const transformLogData = (apiLog: ApiLogData): SystemLog => {
-  // Extract user info from the API response
+  // Extract user info from the API response - might not be present in all logs
   const user = apiLog.user || {};
+  
+  // Extract model information - it exists at the top level in the log data
+  const model = apiLog.model || '';
   
   // Process the API data into our SystemLog format
   return {
     id: apiLog.id,
-    // Determine the log type based on the data
-    type: apiLog.request && apiLog.response ? 'blocked' : 'deactivation',
+    // Determine the log type based on available data
+    type: 'blocked', // Default to blocked since most logs are API requests
     userId: user.id || '',
     userEmail: user.email || '',
     userName: user.name || 'Unknown User',
-    // For blocked logs, we use the model and response information
-    reason: apiLog.request ? `API request using ${apiLog.model || 'unknown model'}` : undefined,
-    // For deactivation logs, we include action info
+    // For API requests, include the model
+    reason: `API request using ${model || 'unknown model'}`,
+    // For deactivation logs (if we ever implement that type)
     action: user.is_deactivated ? 'deactivate' : 'reactivate',
     // Admin info would be included in a full implementation
     adminId: undefined,
     adminEmail: undefined,
     adminName: undefined,
     timestamp: apiLog.created_at || new Date().toISOString(),
+    // Token and cost data from the log
+    model: model,
+    promptTokens: apiLog.promptTokens,
+    completionTokens: apiLog.completionTokens,
+    totalTokens: apiLog.totalTokens,
+    estimatedCost: apiLog.estimatedCost,
   };
 };
 
@@ -141,10 +159,17 @@ export default function LogsPage() {
         throw new Error(data.message || 'Failed to fetch logs');
       }
       
+      // Log the full response data for debugging
+      console.log('API Response Data:', data.data);
+      
       // Transform the API response data to match our SystemLog format
-      const transformedLogs = Object.values(data.data).map((logItem) => 
-        transformLogData(logItem as ApiLogData)
-      );
+      const transformedLogs = Object.values(data.data).map((logItem) => {
+        const transformed = transformLogData(logItem as ApiLogData);
+        // Log each transformed log
+        console.log('Original log:', logItem);
+        console.log('Transformed log:', transformed);
+        return transformed;
+      });
       
       setLogs(transformedLogs);
       
@@ -391,9 +416,12 @@ export default function LogsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]"></TableHead>
-                    <TableHead>Event Type</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Details</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>User / ID</TableHead>
+                    <TableHead>Request Info</TableHead>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Tokens (P/C/T)</TableHead>
+                    <TableHead>Cost ($)</TableHead>
                     <TableHead>
                       <div className="flex items-center">
                         <Clock className="mr-2 h-4 w-4" />
@@ -415,8 +443,16 @@ export default function LogsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{log.userName}</div>
-                          <div className="text-sm text-muted-foreground">{log.userEmail}</div>
+                          {log.userName !== 'Unknown User' ? (
+                            <>
+                              <div className="font-medium">{log.userName}</div>
+                              <div className="text-sm text-muted-foreground">{log.userEmail}</div>
+                            </>
+                          ) : (
+                            <div className="font-mono text-xs text-muted-foreground">
+                              ID: {log.id.substring(0, 8)}...
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -432,6 +468,21 @@ export default function LogsPage() {
                             <span className="font-medium">{log.adminName || 'System'}</span>
                           </div>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono">
+                          {log.model ? log.model : 'unknown'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono">
+                          {log.promptTokens !== undefined ? `${log.promptTokens}/${log.completionTokens}/${log.totalTokens}` : '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono">
+                          {log.estimatedCost !== undefined ? log.estimatedCost.toFixed(5) : '-'}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">{formatTimestamp(log.timestamp)}</div>
